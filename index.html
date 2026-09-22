@@ -142,7 +142,7 @@
   #divider{width:6px;flex-shrink:0;background:var(--line);cursor:col-resize;}
   #divider:hover{background:#b9c2cf;}
   .passage-text{white-space:pre-wrap;line-height:1.85;font-size:calc(16.5px * var(--zoom));letter-spacing:.15px;word-spacing:1px;}
-  #leftPanel img{max-width:100%;height:auto;display:block;margin:12px auto;border:1px solid var(--line);border-radius:6px;}
+  #leftPanel img{max-width:100%;max-height:300px;width:auto;height:auto;display:block;margin:12px auto;border:1px solid var(--line);border-radius:6px;}
 
   .question-text{font-size:calc(17px * var(--zoom));font-weight:600;line-height:1.65;margin-bottom:16px;font-family:"Minion Pro","Minion Pro Regular",Georgia,"Times New Roman",serif;letter-spacing:.15px;word-spacing:1px;}
   .passage-text{font-family:"Minion Pro","Minion Pro Regular",Georgia,"Times New Roman",serif;}
@@ -330,7 +330,7 @@
   .qDetailBody{display:flex;flex:1;overflow-y:auto;min-height:0;}
   .qDetailLeft{flex:1;padding:22px 26px;border-right:1px solid var(--line);white-space:pre-wrap;
     font-family:"Minion Pro","Minion Pro Regular",Georgia,"Times New Roman",serif;line-height:1.85;font-size:16.5px;letter-spacing:.15px;}
-  .qDetailLeft img{max-width:100%;height:auto;display:block;margin:12px auto;border:1px solid var(--line);border-radius:6px;}
+  .qDetailLeft img{max-width:100%;max-height:300px;width:auto;height:auto;display:block;margin:12px auto;border:1px solid var(--line);border-radius:6px;}
   .qDetailRight{flex:1;padding:22px 26px;}
   .opt.correctAns{border-color:#2e7d32;background:#eaf7ec;}
   .opt.correctAns .optletter{background:#2e7d32;color:#fff;border-color:#2e7d32;}
@@ -2355,7 +2355,7 @@ function buildPdfReportDom(){
       <div class="question-block pdf-question" style="margin-bottom:22px;">
         ${idx === 0 ? `<div style="font-weight:800;color:#c0392b;font-size:14px;margin:0 0 10px;">${escHtml(cat)}</div>` : ''}
         <div style="font-weight:700;font-size:13px;margin-bottom:8px;color:#141414;">${escHtml(item.moduleLabel)} — Question ${item.indexInModule+1}</div>
-        ${q.image ? `<img src="${q.image}" alt="Question ${item.indexInModule+1} figure" style="max-width:100%;height:auto;display:block;margin:0 auto 10px;border:1px solid #d8dbe0;border-radius:6px;">` : ''}
+        ${q.image ? `<img src="${q.image}" alt="Question ${item.indexInModule+1} figure" style="max-width:100%;max-height:300px;width:auto;height:auto;display:block;margin:0 auto 10px;border:1px solid #d8dbe0;border-radius:6px;">` : ''}
         ${q.passage ? `<div class="passage-text" style="font-size:12.5px;line-height:1.6;margin-bottom:10px;padding:10px 14px;background:#fbfcfe;border:1px solid #d8dbe0;border-radius:6px;">${renderHighlightedHTML(q.passage, q, 'passage')}</div>` : ''}
         <div class="question-text" style="font-size:13.5px;margin-bottom:8px;">${renderHighlightedHTML(q.questionText, q, 'question')}</div>
         <div class="options">
@@ -2468,7 +2468,18 @@ function submitTest(auto){
   if(hasSubmitted) return;
   if(!auto){
     const unanswered = QUESTIONS.length - Object.keys(answers).length;
-    if(unanswered > 0 && !confirm(unanswered + " question(s) unanswered. Submit anyway?")) return;
+    const isLastModule = moduleIndex === MODULES.length - 1;
+    if(!isLastModule){
+      // Nộp sớm trước khi hết giờ ở một module CHƯA phải module cuối: cảnh báo
+      // rõ ràng rằng module này sẽ bị khoá vĩnh viễn (giống Digital SAT thật —
+      // không có đường quay lại một khi đã nộp module).
+      const warn = "Once you submit " + MODULES[moduleIndex].label + ", you cannot return to review or change your answers for it — just like on the real Digital SAT."
+        + (unanswered > 0 ? ("\n\n" + unanswered + " question(s) in this module are still unanswered.") : "")
+        + "\n\nSubmit " + MODULES[moduleIndex].label + " now?";
+      if(!confirm(warn)) return;
+    } else if(unanswered > 0 && !confirm(unanswered + " question(s) unanswered. Submit anyway?")) {
+      return;
+    }
   }
   hasSubmitted = true;
   if(timerInterval) clearInterval(timerInterval);
