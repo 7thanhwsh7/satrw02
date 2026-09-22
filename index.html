@@ -224,6 +224,23 @@
              letter-spacing:.5px;text-transform:uppercase;padding:5px 12px;margin-bottom:12px;}
   textarea#reportText{width:100%;min-height:80px;border:1px solid var(--line);border-radius:6px;padding:8px;font-size:13px;}
 
+  /* ---- Modal "Finish Module X?" — cảnh báo trước khi khoá module & sang module kế ---- */
+  #moduleFinishModal .modalBox{padding:0;overflow:hidden;max-width:560px;}
+  .mfHeader{background:var(--accent);color:#fff;font-weight:800;font-size:12px;letter-spacing:.6px;
+            text-transform:uppercase;padding:14px 26px;}
+  .mfBody{padding:22px 26px 26px;}
+  .mfBody h2{margin:0 0 12px;font-size:19px;color:#141414;}
+  .mfNote{font-size:13px;color:#333;margin:0 0 3px;font-weight:600;}
+  .mfSub{font-size:12px;color:var(--muted);display:block;margin-top:2px;font-weight:400;}
+  .mfList{list-style:disc;margin:18px 0 0;padding-left:20px;}
+  .mfList li{margin-bottom:14px;font-size:13.5px;color:#141414;line-height:1.5;}
+  .mfList li b{display:block;font-weight:700;}
+  .mfBtnRow{display:flex;gap:12px;margin-top:22px;}
+  .mfBtnRow button{flex:1;text-align:center;}
+  body.theme-dark .mfBody h2{color:#f1f1f1;}
+  body.theme-dark .mfNote{color:#ddd;}
+  body.theme-dark .mfList li{color:#f1f1f1;}
+
   mark.hl{color:inherit;padding:1px 0;cursor:pointer;
     box-decoration-break:clone;-webkit-box-decoration-break:clone;}
   mark.hl-yellow{background:rgba(255,214,0,.55);}
@@ -394,6 +411,34 @@
     <p>The questions in this section address a number of important reading and writing skills. Each question includes one or more passages, which may include a table or graph. Read each passage and question carefully, and then choose the best answer to the question based on the passage(s).</p>
     <p>All questions in this section are multiple-choice with four answer choices. Each question has a single best answer.</p>
     <div class="closeRow"><button class="navctl primary" onclick="closeModal('directionsModal')">Close</button></div>
+  </div>
+</div>
+
+<div class="modalOverlay" id="moduleFinishModal">
+  <div class="modalBox">
+    <div class="mfHeader" id="mfHeaderLabel">FINISH MODULE 1?</div>
+    <div class="mfBody">
+      <h2>Before you continue to <span id="mfNextLabelTitle">Module 2</span></h2>
+      <p class="mfNote">Practice mode only: in the official Digital SAT you cannot move on early — you must wait until the timer ends.
+        <span class="mfSub">Chỉ áp dụng khi luyện tập: trong kỳ thi SAT chính thức, bạn KHÔNG được sang module sau khi chưa hết giờ, phải chờ hết giờ.</span>
+      </p>
+      <ul class="mfList">
+        <li>
+          <b>You cannot go back to <span class="mfCurLabel">Module 1</span> once you continue.</b>
+          <span class="mfSub">Sau khi chuyển, bạn KHÔNG thể quay lại <span class="mfCurLabel">Module 1</span> để xem hay sửa bài.</span>
+        </li>
+        <li>
+          <b>Your answers in <span class="mfCurLabel">Module 1</span> are final.</b>
+          <span class="mfSub">Đáp án của <span class="mfCurLabel">Module 1</span> được chốt, không thể thay đổi.</span>
+        </li>
+        <li id="mfTimeBullet"></li>
+        <li id="mfUnansweredBullet"></li>
+      </ul>
+      <div class="mfBtnRow">
+        <button type="button" class="navctl secondary" id="mfStayBtn" onclick="closeModal('moduleFinishModal')">Stay in <span class="mfCurLabel">Module 1</span></button>
+        <button type="button" class="navctl primary" id="mfContinueBtn" onclick="confirmFinishModule()">Continue to Module 2</button>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -1539,6 +1584,20 @@ let endTime = null;
 let timerHidden = false;
 let hasSubmitted = false;
 
+/* ---- Thời gian làm từng câu (giây), theo id câu trong MODULE hiện tại ----
+   Backend (Apps Script) đọc qua tham số "qtimes" khi nộp bài, ghép với
+   "question_meta" để biết câu nào thuộc module nào — xem tab SAT_ThoiGian. */
+let qTimeAccum = {};     // {qid: tổng giây đã xem câu đó}, reset mỗi khi sang module mới
+let qTimeCurrentId = null;
+let qTimeEnteredAt = null;
+
+function trackQuestionTimeOnLeave(){
+  if(qTimeCurrentId !== null && qTimeEnteredAt !== null){
+    const elapsed = (Date.now() - qTimeEnteredAt) / 1000;
+    qTimeAccum[qTimeCurrentId] = (qTimeAccum[qTimeCurrentId] || 0) + elapsed;
+  }
+}
+
 /* ---- Highlights & Notes ---- */
 const HIGHLIGHTS = {};      // qid -> [{id, field, start, end, color, note}]
 let HL_SEQ = 1;
@@ -1850,6 +1909,9 @@ function startModule(idx){
   Object.keys(marked).forEach(k => delete marked[k]);
   Object.keys(crossed).forEach(k => delete crossed[k]);
   Object.keys(HIGHLIGHTS).forEach(k => delete HIGHLIGHTS[k]);
+  qTimeAccum = {};
+  qTimeCurrentId = null;
+  qTimeEnteredAt = null;
 
   document.getElementById('sectionTitle').textContent = 'Section 1: Reading and Writing — ' + MODULES[idx].label;
   document.getElementById('moduleBreakScreen').style.display = 'none';
@@ -1901,6 +1963,14 @@ function toggleTimerVisibility(){
 
 function renderQuestion(){
   const q = QUESTIONS[current];
+  if(qTimeCurrentId !== q.id){
+    // Chỉ tính lại mốc thời gian khi THỰC SỰ chuyển sang câu khác — renderQuestion()
+    // cũng được gọi lại khi tô highlight trên chính câu đang xem, không được reset
+    // đồng hồ tính giờ của câu đó mỗi lần như vậy.
+    trackQuestionTimeOnLeave();
+    qTimeCurrentId = q.id;
+    qTimeEnteredAt = Date.now();
+  }
   document.getElementById('qnumBadge').textContent = current+1;
   document.getElementById('qpopupNum').textContent = current+1;
   document.getElementById('mfrCheck').checked = !!marked[q.id];
@@ -2483,6 +2553,7 @@ function submitTest(auto){
   }
   hasSubmitted = true;
   if(timerInterval) clearInterval(timerInterval);
+  trackQuestionTimeOnLeave(); // chốt thời gian của câu đang xem lúc nộp bài
 
   /* Chấm điểm module hiện tại và LƯU LẠI toàn bộ (câu hỏi + đáp án đã chọn +
      đánh dấu review) vào moduleResults — vì answers/marked/HIGHLIGHTS sẽ bị
@@ -2491,9 +2562,11 @@ function submitTest(auto){
   const wrongNums = [], omittedNums = [];
   const catTotals = {}, catWrong = {};
   const answersSnapshot = {};
+  const timesSnapshot = [];
   QUESTIONS.forEach((q,i)=>{
     const ans = answers[q.id];
     answersSnapshot[q.id] = ans;
+    timesSnapshot.push(Math.round(qTimeAccum[q.id] || 0));
     const isOmitted = ans === undefined;
     const isCorrect = ans === q.correctKey;
     const cat = q.domain || "General";
@@ -2513,6 +2586,7 @@ function submitTest(auto){
     label: MODULES[moduleIndex].label,
     questions: QUESTIONS,
     answers: answersSnapshot,
+    times: timesSnapshot,
     marked: Object.assign({}, marked),
     correctCount, totalCount: QUESTIONS.length,
     catTotals, catWrong,
@@ -2541,6 +2615,8 @@ function submitTest(auto){
    module), rồi hiện màn hình kết quả chung. */
 function finalizeResults(){
   const combinedAnswers = {};
+  const qtimesArr = [];
+  const questionMeta = [];
   let qCounter = 0;
   const params = new URLSearchParams({
     test_name: TEST_NAME,
@@ -2548,15 +2624,19 @@ function finalizeResults(){
     name: studentName,
     cls: studentClass
   });
-  moduleResults.forEach(mr => {
-    mr.questions.forEach(q => {
+  moduleResults.forEach((mr, mIdx) => {
+    mr.questions.forEach((q, i) => {
       qCounter++;
       const ans = mr.answers[q.id] || "";
-      combinedAnswers[mr.label + ' Q' + (mr.questions.indexOf(q)+1)] = ans;
+      combinedAnswers[mr.label + ' Q' + (i+1)] = ans;
       params.set('q'+qCounter, ans);
+      qtimesArr.push(mr.times && mr.times[i] !== undefined ? mr.times[i] : 0);
+      questionMeta.push({ question: qCounter, module: mIdx+1, domain: q.domain || 'General', skill: q.domain || 'General' });
     });
   });
   params.set('answers', JSON.stringify(combinedAnswers));
+  params.set('qtimes', qtimesArr.join(','));
+  params.set('question_meta', JSON.stringify(questionMeta));
   const beacon = new Image();
   beacon.src = WEBAPP_URL + "?" + params.toString();
 
