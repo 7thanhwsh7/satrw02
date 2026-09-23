@@ -312,6 +312,33 @@
   .scoreStatLabel{font-size:11.5px;letter-spacing:.4px;text-transform:uppercase;color:var(--muted);margin-top:4px;}
   .scoreStatBox.isOmitted .scoreStatNum{color:#946200;}
   .scoreStatBox.isIncorrect .scoreStatNum{color:var(--bad);}
+
+  /* ---- Time Analysis (results screen) ---- */
+  .taStatsRow{display:flex;gap:14px;flex-wrap:wrap;margin-top:14px;}
+  .taStat{flex:1;min-width:130px;background:#f4f6f9;border:1px solid var(--line);border-radius:10px;padding:14px 14px;}
+  .taStatLabel{font-size:10.5px;letter-spacing:.5px;text-transform:uppercase;color:var(--muted);font-weight:700;}
+  .taStatValue{font-size:24px;font-weight:800;color:#141414;margin-top:4px;}
+  .taStatValue.taLongest{color:var(--bad);}
+  .taStatValue.taFastest{color:#1a7f37;}
+  .taStatSub{font-size:11.5px;color:var(--muted);margin-top:2px;}
+  .taModuleBlock{margin-top:22px;}
+  .taModuleBlock:first-child{margin-top:20px;}
+  .taModuleHead{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:6px 14px;
+                border-bottom:1px solid var(--line);padding-bottom:8px;margin-bottom:14px;}
+  .taModuleHead h4{margin:0;font-size:14.5px;color:#141414;}
+  .taModuleHead .taModuleMeta{font-size:12px;color:var(--muted);}
+  .taChart{display:flex;align-items:flex-end;gap:4px;height:110px;}
+  .taBarCol{flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;}
+  .taBarNum{font-size:10px;font-weight:700;color:#141414;margin-bottom:3px;}
+  .taBar{width:100%;max-width:26px;border-radius:3px 3px 0 0;background:#aab8d6;}
+  .taBar.taBarLongest{background:var(--bad);}
+  .taBar.taBarFastest{background:#1a7f37;}
+  .taBarEmpty{width:100%;max-width:26px;height:2px;background:var(--line);border-radius:2px;}
+  .taBarQ{font-size:10.5px;color:var(--muted);margin-top:6px;}
+  .taFootnote{font-size:11.5px;color:var(--muted);margin:18px 0 0;line-height:1.5;}
+  body.theme-dark .taStat{background:#232323;border-color:#3a3a3a;}
+  body.theme-dark .taStatValue{color:#f1f1f1;}
+  body.theme-dark .taModuleHead h4{color:#f1f1f1;}
   .wrongChips{display:flex;flex-wrap:wrap;gap:8px;}
   .wrongChip{background:var(--bad-bg);color:var(--bad);border-radius:16px;padding:5px 13px;font-size:13px;font-weight:600;}
   .omitChip{background:#fdf1d8;color:#946200;border-radius:16px;padding:5px 13px;font-size:13px;font-weight:600;}
@@ -418,7 +445,7 @@
   <div class="modalBox">
     <div class="mfHeader" id="mfHeaderLabel">FINISH MODULE 1?</div>
     <div class="mfBody">
-      <h2>Before you continue to <span id="mfNextLabelTitle">Module 2</span></h2>
+      <h2>Before you <span id="mfNextLabelTitle">continue to Module 2</span></h2>
       <p class="mfNote">Practice mode only: in the official Digital SAT you cannot move on early — you must wait until the timer ends.
         <span class="mfSub">Chỉ áp dụng khi luyện tập: trong kỳ thi SAT chính thức, bạn KHÔNG được sang module sau khi chưa hết giờ, phải chờ hết giờ.</span>
       </p>
@@ -623,6 +650,34 @@
       <h3 style="color:#141414;margin-top:0;">Areas to Practice</h3>
       <p style="color:var(--muted);font-size:13px;margin-top:-6px;">Based on which types of questions you missed.</p>
       <div id="categoryBreakdown"></div>
+    </div>
+    <div class="rcard" id="timeAnalysisCard" style="display:none;">
+      <h3 style="color:#141414;margin-top:0;">Time Analysis</h3>
+      <p style="color:var(--muted);font-size:13px;margin-top:-6px;">How long you spent on each question.</p>
+      <div class="taStatsRow">
+        <div class="taStat">
+          <div class="taStatLabel">Total Time</div>
+          <div class="taStatValue" id="taTotalTime">0s</div>
+          <div class="taStatSub" id="taViewedCount">0 questions viewed</div>
+        </div>
+        <div class="taStat">
+          <div class="taStatLabel">Average / Question</div>
+          <div class="taStatValue" id="taAvgTime">0s</div>
+          <div class="taStatSub">estimated per question</div>
+        </div>
+        <div class="taStat">
+          <div class="taStatLabel">Longest</div>
+          <div class="taStatValue taLongest" id="taLongestTime">0s</div>
+          <div class="taStatSub" id="taLongestWhere">—</div>
+        </div>
+        <div class="taStat">
+          <div class="taStatLabel">Fastest</div>
+          <div class="taStatValue taFastest" id="taFastestTime">0s</div>
+          <div class="taStatSub" id="taFastestWhere">—</div>
+        </div>
+      </div>
+      <div id="taModules"></div>
+      <p class="taFootnote">Time is counted only while a question is on screen (time on the Check Your Work page is not included). Fastest is taken from questions you answered.</p>
     </div>
     <div class="rcard" id="unlockCard">
       <h3 style="color:#141414;margin-top:0;">View Correct Answers</h3>
@@ -2538,19 +2593,65 @@ function submitTest(auto){
   if(hasSubmitted) return;
   if(!auto){
     const unanswered = QUESTIONS.length - Object.keys(answers).length;
-    const isLastModule = moduleIndex === MODULES.length - 1;
-    if(!isLastModule){
-      // Nộp sớm trước khi hết giờ ở một module CHƯA phải module cuối: cảnh báo
-      // rõ ràng rằng module này sẽ bị khoá vĩnh viễn (giống Digital SAT thật —
-      // không có đường quay lại một khi đã nộp module).
-      const warn = "Once you submit " + MODULES[moduleIndex].label + ", you cannot return to review or change your answers for it — just like on the real Digital SAT."
-        + (unanswered > 0 ? ("\n\n" + unanswered + " question(s) in this module are still unanswered.") : "")
-        + "\n\nSubmit " + MODULES[moduleIndex].label + " now?";
-      if(!confirm(warn)) return;
-    } else if(unanswered > 0 && !confirm(unanswered + " question(s) unanswered. Submit anyway?")) {
-      return;
-    }
+    openFinishModuleModal(unanswered);
+    return;
   }
+  doSubmitModule();
+}
+
+/* Hiện modal "FINISH MODULE X?" (thay cho confirm() thô của trình duyệt) khi
+   học sinh chủ động bấm Submit trước khi hết giờ — điền động: tên module
+   hiện tại/kế tiếp, thời gian còn lại, số câu chưa làm. Bấm "Continue"/
+   "Submit Test" mới thực sự gọi doSubmitModule(); bấm "Stay" chỉ đóng modal. */
+function openFinishModuleModal(unanswered){
+  const isLastModule = moduleIndex === MODULES.length - 1;
+  const curLabel = MODULES[moduleIndex].label;
+  const nextLabel = isLastModule ? null : MODULES[moduleIndex+1].label;
+
+  document.getElementById('mfHeaderLabel').textContent = 'FINISH ' + curLabel.toUpperCase() + '?';
+  document.getElementById('mfNextLabelTitle').textContent = isLastModule ? 'submit the test' : ('continue to ' + nextLabel);
+  document.querySelectorAll('.mfCurLabel').forEach(el => el.textContent = curLabel);
+
+  const remaining = Math.max(0, endTime - Date.now());
+  const mm = String(Math.floor(remaining/60000)).padStart(2,'0');
+  const ss = String(Math.floor((remaining%60000)/1000)).padStart(2,'0');
+  const timeStr = mm + ':' + ss;
+  const timeBullet = document.getElementById('mfTimeBullet');
+  if(isLastModule){
+    timeBullet.innerHTML = `<b>Unused time is lost — you have ${timeStr} left.</b>
+      <span class="mfSub">Thời gian còn lại (${timeStr}) sẽ bị bỏ khi bạn nộp bài.</span>`;
+  } else {
+    timeBullet.innerHTML = `<b>Unused time is lost — you have ${timeStr} left. ${nextLabel} has its own separate timer (${MODULES[moduleIndex+1].timeLimitMinutes} min).</b>
+      <span class="mfSub">Thời gian còn lại (${timeStr}) sẽ bị bỏ, không cộng sang module sau. ${nextLabel} có đồng hồ riêng (${MODULES[moduleIndex+1].timeLimitMinutes} phút).</span>`;
+  }
+
+  const unansweredBullet = document.getElementById('mfUnansweredBullet');
+  if(unanswered > 0){
+    unansweredBullet.style.display = '';
+    unansweredBullet.innerHTML = `<b>You have ${unanswered} unanswered question(s) in ${curLabel}.</b>
+      <span class="mfSub">Bạn còn ${unanswered} câu chưa trả lời trong ${curLabel}.</span>`;
+  } else {
+    unansweredBullet.style.display = 'none';
+    unansweredBullet.innerHTML = '';
+  }
+
+  // Câu bullet "không quay lại được module trước" chỉ có ý nghĩa khi còn module
+  // kế tiếp — ẩn đi khi đây đã là module cuối (không có module nào để "quay lại từ").
+  const goBackBullet = document.querySelector('.mfList li:first-child');
+  goBackBullet.style.display = isLastModule ? 'none' : '';
+
+  document.getElementById('mfStayBtn').innerHTML = 'Stay in <span class="mfCurLabel">' + curLabel + '</span>';
+  document.getElementById('mfContinueBtn').textContent = isLastModule ? 'Submit Test' : ('Continue to ' + nextLabel);
+
+  openModal('moduleFinishModal');
+}
+
+function confirmFinishModule(){
+  closeModal('moduleFinishModal');
+  doSubmitModule();
+}
+
+function doSubmitModule(){
   hasSubmitted = true;
   if(timerInterval) clearInterval(timerInterval);
   trackQuestionTimeOnLeave(); // chốt thời gian của câu đang xem lúc nộp bài
@@ -2680,6 +2781,81 @@ function finalizeResults(){
   document.getElementById('reviewPage').style.display = 'none';
   document.getElementById('moduleBreakScreen').style.display = 'none';
   document.getElementById('resultsScreen').style.display = 'block';
+  renderTimeAnalysis();
+}
+
+/* "Time Analysis" trên màn hình kết quả — dùng đúng dữ liệu qTimeAccum đã ghi
+   lại theo từng câu (moduleResults[].times, cùng nguồn với "qtimes" gửi lên
+   Apps Script) nên số liệu hiển thị cho học sinh và số liệu lưu vào
+   SAT_ThoiGian luôn khớp nhau. */
+function renderTimeAnalysis(){
+  const card = document.getElementById('timeAnalysisCard');
+  if(!moduleResults.length){ card.style.display = 'none'; return; }
+
+  // Gom toàn bộ câu (mọi module) thành 1 danh sách phẳng để tính các số liệu tổng.
+  const flat = [];
+  moduleResults.forEach((mr, mIdx) => {
+    mr.questions.forEach((q, i) => {
+      flat.push({
+        moduleLabel: mr.label,
+        qNum: i + 1,
+        seconds: (mr.times && mr.times[i]) || 0,
+        answered: mr.answers[q.id] !== undefined
+      });
+    });
+  });
+
+  const viewed = flat.filter(x => x.seconds > 0);
+  const totalSeconds = flat.reduce((s,x) => s + x.seconds, 0);
+  const avgSeconds = viewed.length ? Math.round(totalSeconds / viewed.length) : 0;
+
+  let longest = null;
+  viewed.forEach(x => { if(!longest || x.seconds > longest.seconds) longest = x; });
+
+  let fastest = null;
+  viewed.filter(x => x.answered).forEach(x => { if(!fastest || x.seconds < fastest.seconds) fastest = x; });
+
+  card.style.display = viewed.length ? 'block' : 'none';
+  if(!viewed.length) return;
+
+  document.getElementById('taTotalTime').textContent = totalSeconds + 's';
+  document.getElementById('taViewedCount').textContent = viewed.length + ' question' + (viewed.length===1?'':'s') + ' viewed';
+  document.getElementById('taAvgTime').textContent = avgSeconds + 's';
+  document.getElementById('taLongestTime').textContent = (longest ? longest.seconds : 0) + 's';
+  document.getElementById('taLongestWhere').textContent = longest ? (longest.moduleLabel + ' · Question ' + longest.qNum) : '—';
+  document.getElementById('taFastestTime').textContent = (fastest ? fastest.seconds : 0) + 's';
+  document.getElementById('taFastestWhere').textContent = fastest ? (fastest.moduleLabel + ' · Question ' + fastest.qNum) : '—';
+
+  const globalMax = Math.max(1, ...viewed.map(x => x.seconds));
+
+  document.getElementById('taModules').innerHTML = moduleResults.map((mr, mIdx) => {
+    const items = mr.questions.map((q, i) => ({ qNum: i+1, seconds: (mr.times && mr.times[i]) || 0, answered: mr.answers[q.id] !== undefined }));
+    const modViewed = items.filter(x => x.seconds > 0);
+    const modTotal = modViewed.reduce((s,x)=>s+x.seconds, 0);
+    const modAvg = modViewed.length ? Math.round(modTotal / modViewed.length) : 0;
+    let modLongest = null; modViewed.forEach(x => { if(!modLongest || x.seconds > modLongest.seconds) modLongest = x; });
+    let modFastest = null; modViewed.filter(x=>x.answered).forEach(x => { if(!modFastest || x.seconds < modFastest.seconds) modFastest = x; });
+
+    const bars = items.map(x => {
+      if(x.seconds <= 0){
+        return `<div class="taBarCol"><div class="taBarEmpty"></div><div class="taBarQ">${x.qNum}</div></div>`;
+      }
+      const h = Math.max(6, Math.round((x.seconds / globalMax) * 90));
+      let cls = 'taBar';
+      if(modLongest && x.qNum === modLongest.qNum) cls += ' taBarLongest';
+      else if(modFastest && x.qNum === modFastest.qNum) cls += ' taBarFastest';
+      return `<div class="taBarCol"><div class="taBarNum">${x.seconds}</div><div class="${cls}" style="height:${h}px;"></div><div class="taBarQ">${x.qNum}</div></div>`;
+    }).join('');
+
+    const meta = `Total ${modTotal}s · Avg ${modAvg}s / question`
+      + (modLongest ? ` · Longest: Q${modLongest.qNum} (${modLongest.seconds}s)` : '')
+      + (modFastest ? ` · Fastest: Q${modFastest.qNum} (${modFastest.seconds}s)` : '');
+
+    return `<div class="taModuleBlock">
+      <div class="taModuleHead"><h4>${escHtml(mr.label)}</h4><span class="taModuleMeta">${escHtml(meta)}</span></div>
+      <div class="taChart">${bars}</div>
+    </div>`;
+  }).join('');
 }
 </script>
 </body>
