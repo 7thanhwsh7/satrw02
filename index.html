@@ -274,24 +274,56 @@
   /* ---------- START SCREEN ---------- */
   #startScreen{flex:1;display:flex;align-items:center;justify-content:center;padding:28px 20px;overflow:hidden;position:relative;
     background:#0c4f8a;
-    background-image:radial-gradient(circle at 8% 12%,rgba(255,255,255,.16) 0 1px,transparent 1.5px),
-      radial-gradient(circle at 84% 18%,rgba(255,255,255,.12) 0 1px,transparent 1.5px),
+    background-image:
+      linear-gradient(rgba(255,255,255,.055) 1px,transparent 1px),
+      linear-gradient(90deg,rgba(255,255,255,.055) 1px,transparent 1px),
       linear-gradient(133deg,rgba(5,43,82,.58) 0 23%,transparent 23% 74%,rgba(255,255,255,.08) 74% 100%);
-    background-size:31px 31px,41px 41px,100% 100%;
+    background-size:38px 38px,38px 38px,100% 100%;
     animation:satDrift 28s linear infinite;}
   @keyframes satDrift{
     0%{background-position:0 0, 0 0, 0 0;}
-    100%{background-position:62px 34px, -82px 54px, 0 0;}
+    100%{background-position:62px 34px, 62px 34px, 0 0;}
   }
   @media (prefers-reduced-motion: reduce){ #startScreen{animation:none;} }
+  /* Hoạ tiết chữ/văn học mờ phía sau thẻ đăng nhập — chỉ trang trí, không đọc được rõ,
+     giống phong cách bản SAT Math (công thức toán mờ) nhưng đổi sang chủ đề Reading & Writing. */
+  .satWatermarks{position:absolute;inset:0;overflow:hidden;pointer-events:none;z-index:0;}
+  .wmSym{position:absolute;color:rgba(255,255,255,.14);font-family:Georgia,'Times New Roman',serif;
+         font-weight:700;line-height:1;user-select:none;}
+  .wm1{top:5%;left:9%;font-size:88px;animation:wmFloat1 9s ease-in-out infinite;}
+  .wm2{top:8%;right:8%;font-size:96px;animation:wmFloat2 11s ease-in-out infinite .6s;}
+  .wm3{bottom:30%;left:6%;font-size:76px;animation:wmFloat3 8s ease-in-out infinite 1.2s;}
+  .wm4{bottom:8%;left:38%;font-size:70px;font-style:italic;animation:wmFloat4 10s ease-in-out infinite .3s;}
+  .wmBook{position:absolute;right:4%;bottom:4%;width:230px;height:auto;opacity:.16;
+          animation:wmFloat3 13s ease-in-out infinite;}
+  .wmPenLine{stroke-dasharray:7 6;animation:wmDash 7s linear infinite;}
+  @keyframes wmFloat1{0%,100%{transform:translateY(0) rotate(0deg);}50%{transform:translateY(-14px) rotate(-3deg);}}
+  @keyframes wmFloat2{0%,100%{transform:translateY(0) rotate(0deg);}50%{transform:translateY(12px) rotate(2deg);}}
+  @keyframes wmFloat3{0%,100%{transform:translateY(0);}50%{transform:translateY(-10px);}}
+  @keyframes wmFloat4{0%,100%{transform:translateY(0) rotate(0deg);}50%{transform:translateY(10px) rotate(-2deg);}}
+  @keyframes wmDash{to{stroke-dashoffset:-260;}}
+  @media (prefers-reduced-motion: reduce){
+    .wm1,.wm2,.wm3,.wm4,.wmBook{animation:none;}
+    .wmPenLine{animation:none;}
+  }
   .card{background:#fff;border:0;border-radius:4px;padding:0;max-width:460px;width:100%;text-align:center;
-    overflow:hidden;box-shadow:0 20px 44px rgba(0,27,55,.34);}
-  .card::before{content:'SAT PRACTICE';display:block;background:#073b70;color:#fff;padding:11px 24px 10px;
-    font-family:'Inter','Segoe UI',system-ui,sans-serif;font-size:11px;font-weight:700;letter-spacing:1.8px;text-align:left;}
+    overflow:hidden;box-shadow:0 20px 44px rgba(0,27,55,.34);position:relative;z-index:1;}
+  .cardHeader{display:flex;align-items:center;justify-content:space-between;background:#073b70;color:#fff;
+    padding:11px 20px 10px 24px;font-family:'Inter','Segoe UI',system-ui,sans-serif;font-size:11px;
+    font-weight:700;letter-spacing:1.8px;text-align:left;}
+  .cardBadge{background:#f9b233;color:#073b70;font-size:10.5px;font-weight:800;letter-spacing:.8px;
+    border-radius:4px;padding:3px 9px;}
   .card .brand-logo{font-family:'Inter','Segoe UI',system-ui,sans-serif;font-weight:700;font-size:12.5px;letter-spacing:2px;color:#0c4f8a;margin:27px 30px 5px;}
   .card .brand-sub{font-family:'Inter','Segoe UI',system-ui,sans-serif;font-size:11.5px;font-weight:500;color:#61758a;margin:0 30px 22px;}
   .card h2{color:#14283d;margin:0 30px 7px;font-family:'Inter','Segoe UI',system-ui,sans-serif;font-size:26px;font-weight:800;line-height:1.15;letter-spacing:-.7px;}
-  .card h2::after{content:'';display:block;width:42px;height:3px;background:#f9b233;margin:16px auto 0;}
+  .card h2::after{content:'';display:block;width:0;height:3px;background:#f9b233;margin:16px auto 0;
+    animation:satUnderlineGrow .9s .35s ease-out forwards;}
+  @keyframes satUnderlineGrow{to{width:42px;}}
+  @media (prefers-reduced-motion: reduce){ .card h2::after{animation:none;width:42px;} }
+  .startHint{margin:0 30px 15px;text-align:left;font-family:'Inter','Segoe UI',system-ui,sans-serif;
+    font-size:11.5px;color:#61758a;line-height:1.5;}
+  .startHint b{color:#34495e;}
+  .startHintVi{display:block;font-family:"Times New Roman",Times,serif;}
   .card p{margin:18px 30px 22px!important;color:#43566c!important;font-family:'Inter','Segoe UI',system-ui,sans-serif;font-size:13.5px;font-weight:400;}
   .card label{display:block;text-align:left;font-family:'Inter','Segoe UI',system-ui,sans-serif;font-size:12px;font-weight:600;color:#34495e;margin:0 30px 5px;}
   .card input{width:calc(100% - 60px);padding:12px 13px;border:1px solid #b8c6d5;border-radius:4px;font-family:'Inter','Segoe UI',system-ui,sans-serif;font-size:14px;font-weight:400;margin:0 30px 15px;}
@@ -409,13 +441,30 @@
 <body>
 
 <div id="startScreen">
+  <div class="satWatermarks" aria-hidden="true">
+    <span class="wmSym wm1">&amp;</span>
+    <span class="wmSym wm2">¶</span>
+    <span class="wmSym wm3">&ldquo;&rdquo;</span>
+    <span class="wmSym wm4"><i>Aa</i></span>
+    <svg class="wmBook" viewBox="0 0 160 120" xmlns="http://www.w3.org/2000/svg">
+      <path d="M80 30C64 20 38 20 22 27V96C38 89 64 89 80 98V30Z" fill="none" stroke="#fff" stroke-width="2"/>
+      <path d="M80 30C96 20 122 20 138 27V96C122 89 96 89 80 98V30Z" fill="none" stroke="#fff" stroke-width="2"/>
+      <path d="M80 30V98" stroke="#fff" stroke-width="2"/>
+      <line x1="32" y1="42" x2="60" y2="37" stroke="#fff" stroke-width="1.4"/>
+      <line x1="32" y1="54" x2="60" y2="49" stroke="#fff" stroke-width="1.4"/>
+      <line x1="32" y1="66" x2="55" y2="61" stroke="#fff" stroke-width="1.4"/>
+      <path d="M14 108C40 116 60 100 80 108C100 116 120 100 146 108" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" class="wmPenLine"/>
+    </svg>
+  </div>
   <div class="card">
+    <div class="cardHeader">SAT PRACTICE <span class="cardBadge">R&amp;W</span></div>
     <div class="brand-logo">G.EDU</div>
     <div class="brand-sub">G.EDU Language Center</div>
     <h2>SAT Reading &amp; Writing Practice</h2>
     <p style="color:var(--muted);font-size:13.5px;">Enter your name and class to begin.</p>
     <label for="nameInput">Full name</label>
     <input type="text" id="nameInput" placeholder="Full name">
+    <div class="startHint">Your name will auto-format to <b>CAPITAL LETTERS</b>, no accents.<span class="startHintVi">Tên sẽ tự động chuyển thành <b>IN HOA</b>, <b>KHÔNG dấu</b>.</span></div>
     <label for="clsInput">Class</label>
     <input type="text" id="clsInput" placeholder="Class">
     <button class="navctl primary" style="width:100%;margin-top:6px;" onclick="startTest()">Start Test</button>
@@ -1933,9 +1982,35 @@ function submitReport(){
   alert("Thanks — your report has been sent.");
 }
 
+/* Chuẩn hoá text nhập vào: viết HOA + bỏ dấu tiếng Việt, để khớp với
+   normalizeStudentName_ / normalizeClass_ ở Apps Script (tránh học sinh
+   nhập có dấu/chữ thường rồi bị lệch khi đối chiếu ở backend). */
+function stripVNAccents(str){
+  return str
+    .normalize('NFD').replace(/[̀-ͯ]/g, '')
+    .replace(/đ/gi, m => m === 'đ' ? 'd' : 'D');
+}
+function liveUpperNoAccent(inputEl){
+  const start = inputEl.selectionStart, end = inputEl.selectionEnd;
+  const before = inputEl.value;
+  const after = stripVNAccents(before).toUpperCase();
+  if(after !== before){
+    inputEl.value = after;
+    const diff = after.length - before.length;
+    try{ inputEl.setSelectionRange(start + diff, end + diff); }catch(e){}
+  }
+}
+function attachAutoFormat(id){
+  const el = document.getElementById(id);
+  if(!el) return;
+  el.addEventListener('input', () => liveUpperNoAccent(el));
+}
+attachAutoFormat('nameInput');
+attachAutoFormat('clsInput');
+
 function startTest(){
-  studentName = document.getElementById('nameInput').value.trim();
-  studentClass = document.getElementById('clsInput').value.trim();
+  studentName = stripVNAccents(document.getElementById('nameInput').value.trim()).toUpperCase();
+  studentClass = stripVNAccents(document.getElementById('clsInput').value.trim()).toUpperCase();
   if(!studentName){ alert("Please enter your name."); return; }
   document.getElementById('startScreen').style.display = 'none';
   startModule(0);
